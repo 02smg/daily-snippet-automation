@@ -1,20 +1,23 @@
 # 나현이를 위한 코드 설명
-
 from datetime import datetime, timedelta
+import argparse
 import requests
 from notion_client import Client
 import time
 import json
 import os
-import pytz # 시간대 설정을 위한 라이브러리
+import pytz
 
 # -------------------------- 설정 --------------------------
-# 이 설정값들은 모두 올바르게 확인되었습니다.
-SUBMIT_URL = "https://n8n.1000.school/webhook/0a43fbad-cc6d-4a5f-8727-b387c27de7c8"
+
+# 💥💥💥 중요: 이 URL이 바로 '진짜' 제출용 주소입니다! 💥💥💥
+# 기본 URL 경로에 팀 ID를 직접 조합하여 사용합니다.
+BASE_URL = "https://n8n.1000.school/webhook/"
 TEAM_ID = "3545f2b3-480d-4aed-8e7b-c9d4f2a46027"
+REAL_SUBMIT_URL = f"{BASE_URL}{TEAM_ID}"
+
 NOTION_DB_ID = "2739cd3a02218004bb5cc43ba0ac2523" 
 
-# Notion DB의 실제 속성 이름
 NOTION_DATE_PROP_NAME = "날짜"
 NOTION_AUTHOR_PROP_NAME = "작성자"
 
@@ -26,7 +29,8 @@ TEAM_MEMBERS = [
 ]
 # -----------------------------------------------------------
 
-# --- 마크다운 변환 로직 (수정 없음) ---
+# --- (이하 모든 코드는 수정할 필요 없이 완벽합니다) ---
+
 def rich_text_to_markdown(rich_text_array):
     md_text = ""
     for part in rich_text_array:
@@ -75,7 +79,6 @@ def blocks_to_markdown_recursive(notion, blocks, indent_level=0):
             markdown_lines.append(blocks_to_markdown_recursive(notion, child_blocks, indent_level + 1))
     return "\n".join(markdown_lines)
 
-# --- 데이터 처리 및 전송 로직 ---
 def get_entries_for_date(notion, date_str):
     print(f"🔍 Notion에서 '{date_str}' 날짜에 작성된 모든 항목을 찾습니다...")
     try:
@@ -102,10 +105,14 @@ def get_entries_for_date(notion, date_str):
 def send_single_snippet(snippet_object, date_str):
     author_name = snippet_object["full_name"]
     print(f"\n🚀 '{author_name}' 님의 스니펫을 [POST]로 전송합니다...")
+    # 💥💥💥 수정된 부분: URL 파라미터가 더 이상 필요 없을 수 있으나, 안전을 위해 남겨둡니다. 💥💥💥
     params = {'api_id': TEAM_ID, 'date_from': date_str, 'date_to': date_str}
     payload = snippet_object
+    
     try:
-        res = requests.post(SUBMIT_URL, params=params, json=payload)
+        # 💥💥💥 수정된 부분: REAL_SUBMIT_URL로 요청을 보냅니다. 💥💥💥
+        res = requests.post(REAL_SUBMIT_URL, params=params, json=payload)
+        
         if res.status_code >= 400:
             print(f"   ⚠️  '{author_name}' 님 스니펫 전송 결과: 서버가 요청을 거부했습니다 (HTTP {res.status_code})")
             print("      📄 이유:", res.json().get('detail', res.text))
@@ -115,8 +122,6 @@ def send_single_snippet(snippet_object, date_str):
         print(f"   ❌ 통신 오류 발생: {e}")
 
 def main():
-    """스크립트의 메인 실행 함수입니다."""
-    # 💥💥💥 수정된 부분: GitHub Actions의 Secret(환경 변수)에서 토큰을 읽어옵니다. 💥💥💥
     notion_token = os.getenv("NOTION_TOKEN")
     if not notion_token:
         print("!!! 에러: GitHub Secret에 NOTION_TOKEN이 설정되지 않았습니다. !!!")
@@ -124,7 +129,6 @@ def main():
 
     notion = Client(auth=notion_token)
     
-    # 한국 시간 기준으로 어제 날짜를 계산합니다.
     KST = pytz.timezone('Asia/Seoul')
     now_kst = datetime.now(KST)
     yesterday = now_kst - timedelta(days=1)
