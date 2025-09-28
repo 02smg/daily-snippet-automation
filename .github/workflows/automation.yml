@@ -1,40 +1,26 @@
-name: Daily Snippet Automation
+name: Daily Snippet Sync
 
 on:
-  # 매일 오전 8시 KST
   schedule:
-    - cron: '0 23 * * *' # UTC 기준, KST = UTC +9 → 08:00 KST
-  # 수동 실행용
-  workflow_dispatch:
+    - cron: '0 23 * * *'   # 한국 시간 오전 8시 (UTC 23시)
+  workflow_dispatch:       # 수동 실행 시에도 동일하게 동작
 
 jobs:
-  send-snippet:
+  run-script:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Python 설정
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9'
 
-      # 3. 필요한 패키지 설치
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install requests notion-client
+          pip install notion-client requests pytz
 
-      # 4. 실행
-      - name: Run Daily Snippet
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      - name: Run snippet sync (always previous day)
         run: |
-          # 기본 모드 → 어제 글
-           python aaa.py --token $NOTION_TOKEN
-          
-          # 만약 테스트 모드로 오늘 글 제출하고 싶으면 아래처럼 실행
-          # python aaa.py --token $NOTION_TOKEN --force-today
+          python aaa.py --token ${{ secrets.NOTION_TOKEN }}
