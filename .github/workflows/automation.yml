@@ -28,5 +28,5 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: |
-          python your_script.py --token $NOTION_TOKEN
+          python aaa.py --token $NOTION_TOKEN
 
