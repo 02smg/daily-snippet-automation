@@ -82,13 +82,13 @@ def blocks_to_markdown_recursive(notion, blocks, indent_level=0):
     return "\n".join(markdown_lines)
 
 
-def get_all_yesterday_entries(notion):
-    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    print(f"🔍 Notion에서 어제({yesterday_str}) 작성된 모든 항목을 찾습니다...")
+def get_entries_for_date(notion, notion_date):
+    """특정 날짜(notion_date)의 모든 Notion 항목 조회"""
+    print(f"🔍 Notion에서 {notion_date} 작성된 모든 항목을 찾습니다...")
     try:
         response = notion.databases.query(
             database_id=NOTION_DB_ID,
-            filter={"property": "날짜", "date": {"equals": yesterday_str}}
+            filter={"property": "날짜", "date": {"equals": notion_date}}
         )
 
         entries = []
@@ -111,12 +111,11 @@ def get_all_yesterday_entries(notion):
         return []
 
 
-def send_single_snippet(snippet_object):
+def send_single_snippet(snippet_object, snippet_date):
     author_name = snippet_object["full_name"]
     print(f"\n🚀 '{author_name}' 님의 스니펫을 [POST]로 전송합니다...")
 
-    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    params = {"api_id": TEAM_ID, "date_from": yesterday_str, "date_to": yesterday_str}
+    params = {"api_id": TEAM_ID, "date_from": snippet_date, "date_to": snippet_date}
     payload = snippet_object
 
     try:
@@ -133,19 +132,33 @@ def send_single_snippet(snippet_object):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Notion DB의 어제 항목들의 '내용'을 Daily Snippet으로 전송합니다.")
+    parser = argparse.ArgumentParser(description="Notion DB의 항목들을 Daily Snippet으로 전송합니다.")
     parser.add_argument("--token", required=True, help="Notion Integration Token")
+    parser.add_argument("--force-today", action="store_true", help="오늘 글을 오늘 스니펫에 제출 (수동 테스트용)")
     args = parser.parse_args()
+
+    now = datetime.now()
+    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    today_str = now.strftime("%Y-%m-%d")
+
+    if args.force_today:
+        notion_date = today_str
+        snippet_date = today_str
+        print(f"📝 FORCE 모드: {today_str} 글을 {today_str} 스니펫에 제출합니다.")
+    else:
+        notion_date = yesterday_str
+        snippet_date = yesterday_str
+        print(f"📝 기본 모드: {yesterday_str} 글을 {yesterday_str} 스니펫에 제출합니다.")
+
     notion = Client(auth=args.token)
-    all_entries = get_all_yesterday_entries(notion)
+    all_entries = get_entries_for_date(notion, notion_date)
 
     if not all_entries:
-        print("\n🚫 처리 완료: 어제 Notion에 작성된 글이 없거나 내용을 가져올 수 없었습니다.")
+        print("\n🚫 처리 완료: 해당 날짜 Notion에 작성된 글이 없거나 내용을 가져올 수 없었습니다.")
         return
 
     print(f"\n👍 Notion에서 총 {len(all_entries)}개의 항목을 찾았습니다. 팀원별로 전송을 시작합니다.")
 
-    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     for member in TEAM_MEMBERS:
         member_entry = next((entry for entry in all_entries if entry["author"] == member["notion_author_name"]), None)
 
@@ -157,12 +170,12 @@ def main():
         snippet_object = {
             "user_email": member["user_email"],
             "api_id": TEAM_ID,
-            "snippet_date": yesterday_str,
+            "snippet_date": snippet_date,
             "content": content,
             "team_name": "7기-1팀",
             "full_name": member["full_name"],
         }
-        send_single_snippet(snippet_object)
+        send_single_snippet(snippet_object, snippet_date)
         time.sleep(1)
 
 
