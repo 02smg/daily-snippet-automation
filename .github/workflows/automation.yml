@@ -21,6 +21,6 @@ jobs:
         run: |
           pip install notion-client requests pytz
 
-      - name: Run snippet sync (always previous day)
+      - name: Run snippet sync (always previous day, KST)
         run: |
           python aaa.py --token ${{ secrets.NOTION_TOKEN }}
