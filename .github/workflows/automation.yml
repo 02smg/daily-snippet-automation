@@ -34,7 +34,7 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: |
           # 기본 모드 → 어제 글
-          # python aaa.py --token $NOTION_TOKEN
+           python aaa.py --token $NOTION_TOKEN
           
           # 만약 테스트 모드로 오늘 글 제출하고 싶으면 아래처럼 실행
-          python aaa.py --token $NOTION_TOKEN --force-today
+          # python aaa.py --token $NOTION_TOKEN --force-today
