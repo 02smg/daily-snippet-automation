@@ -2,7 +2,7 @@ name: Daily Snippet Sync
 
 on:
   schedule:
-    - cron: '0 16 * * *'   # 한국 시간 오전 8시 (UTC 23시)
+    - cron: '0 23 * * *'   # 한국 시간 오전 8시 (UTC 23시)
   workflow_dispatch:       # 수동 실행 시에도 동일하게 동작
 
 jobs:
